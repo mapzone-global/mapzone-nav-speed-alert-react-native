@@ -9,7 +9,6 @@ import type {
   SignsEvent,
   VoiceAlertType,
   VoiceEvent,
-  VoiceMode,
 } from './NavSpeedAlert.types';
 import NavSpeedAlertModule from './NavSpeedAlertModule';
 
@@ -72,11 +71,6 @@ export function reset(): void {
  */
 export function setMutedAlertTypes(types: VoiceAlertType[]): void {
   NavSpeedAlertModule.setMutedAlertTypes(types.map((t) => t as number));
-}
-
-/** Switch between spoken sentences and a short chime. Persists across `reset()`. */
-export function setVoiceMode(mode: VoiceMode): void {
-  NavSpeedAlertModule.setVoiceMode(mode as number);
 }
 
 /**

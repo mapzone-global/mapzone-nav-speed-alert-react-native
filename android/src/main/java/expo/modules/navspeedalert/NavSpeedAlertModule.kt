@@ -5,7 +5,6 @@ import android.util.Base64
 import com.vietmap.alert_view_sdk.AlertViewManager
 import com.vietmap.alert_view_sdk.VoiceAlertType
 import com.vietmap.alert_view_sdk.VoiceCallback
-import com.vietmap.alert_view_sdk.VoiceMode
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -114,9 +113,6 @@ class NavSpeedAlertModule : Module() {
     Function("reset") { mgr.reset() }
     Function("setMutedAlertTypes") { codes: List<Int> ->
       mgr.setMutedAlertTypes(VoiceAlertType.values().filter { it.triggerValue in codes }.toSet())
-    }
-    Function("setVoiceMode") { mode: Int ->
-      mgr.setVoiceMode(VoiceMode.values().firstOrNull { it.nativeValue == mode } ?: VoiceMode.FULL)
     }
     // Async: these wait for the engine queue (a segment fetch can be in flight)
     // and must not stall the JS thread.

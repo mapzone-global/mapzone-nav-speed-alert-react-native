@@ -1,5 +1,5 @@
 import * as NavSpeedAlert from '@mapzone/nav-speed-alert';
-import { VoiceAlertType, VoiceMode, useNavSpeedAlertSigns } from '@mapzone/nav-speed-alert';
+import { VoiceAlertType, useNavSpeedAlertSigns } from '@mapzone/nav-speed-alert';
 import Constants from 'expo-constants';
 import { Paths } from 'expo-file-system';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -33,7 +33,6 @@ export default function App() {
   const [simSpeed, setSimSpeed] = useState(60);
   const [running, setRunning] = useState(false);
   const [voiceViaJs, setVoiceViaJs] = useState(false);
-  const [voiceMode, setVoiceModeState] = useState<VoiceMode>(VoiceMode.FULL);
   const [muted, setMuted] = useState<Set<VoiceAlertType>>(new Set());
   const [log, setLog] = useState<string[]>([]);
   const [logsAvailable, setLogsAvailable] = useState(false);
@@ -134,9 +133,18 @@ export default function App() {
     NavSpeedAlert.setMutedAlertTypes([...next]);
   };
 
-  const applyVoiceMode = (mode: VoiceMode) => {
-    setVoiceModeState(mode);
-    NavSpeedAlert.setVoiceMode(mode);
+  // Debug helpers for the extras contract: a reserved key must come back as a
+  // native error string, and `{}` must clear and return null. Call before Start.
+  const onDebugHeaders = () => {
+    const err = NavSpeedAlert.setExtraHeaders({ 'content-type': 'x' });
+    const cleared = NavSpeedAlert.setExtraHeaders({});
+    appendLog(`setExtraHeaders reserved → ${err} | clear → ${cleared}`);
+  };
+
+  const onDebugBodyFields = () => {
+    const err = NavSpeedAlert.setExtraBodyFields({ pointsPolyline: 'x' });
+    const cleared = NavSpeedAlert.setExtraBodyFields({});
+    appendLog(`setExtraBodyFields reserved → ${err} | clear → ${cleared}`);
   };
 
   const onExportLogs = async () => {
@@ -193,15 +201,17 @@ export default function App() {
 
         <Section title="Voice">
           <Toggle label="Receive voice in JS (silences built-in player)" value={voiceViaJs} onChange={setVoiceViaJs} />
-          <View style={styles.rowCenter}>
-            <Text>Mode: </Text>
-            <Button title={voiceMode === VoiceMode.FULL ? '● FULL' : 'FULL'} onPress={() => applyVoiceMode(VoiceMode.FULL)} />
-            <Button title={voiceMode === VoiceMode.DING ? '● DING' : 'DING'} onPress={() => applyVoiceMode(VoiceMode.DING)} />
-          </View>
           <Text style={styles.sub}>Mute:</Text>
           {MUTABLE_TYPES.map(([name, type]) => (
             <Toggle key={name} label={name} value={muted.has(type)} onChange={() => toggleMute(type)} />
           ))}
+        </Section>
+
+        <Section title="Debug">
+          <View style={styles.rowCenter}>
+            <Button title="Extra headers" onPress={onDebugHeaders} />
+            <Button title="Extra body fields" onPress={onDebugBodyFields} />
+          </View>
         </Section>
 
         <Section title="Log">

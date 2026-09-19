@@ -19,7 +19,6 @@ declare class NavSpeedAlertNativeModule extends NativeModule<NavSpeedAlertEvents
   ): void;
   reset(): void;
   setMutedAlertTypes(codes: number[]): void;
-  setVoiceMode(mode: number): void;
   canExportLogs(): Promise<boolean>;
   exportLogs(path: string): Promise<number>;
 }

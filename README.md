@@ -104,7 +104,6 @@ longer display.
 | `onLocation(fix)` | Feed one GPS sample. |
 | `reset()` | Stop and drop the route. Safe to call repeatedly. |
 | `setMutedAlertTypes(types)` | Mute voice categories (`VoiceAlertType[]`). Camera/toll mutes also hide the sign; restriction mutes only silence the voice. `[]` unmutes all. Speed-limit / speeding voice cannot be muted. |
-| `setVoiceMode(mode)` | `VoiceMode.FULL` (spoken, default) or `VoiceMode.DING` (chime only). Signs are unaffected. |
 | `canExportLogs()` | `Promise<boolean>` — whether the native build captures a diagnostic log. |
 | `exportLogs(path)` | `Promise<number>` — write the diagnostic log to a file. Resolves to bytes written; `0` = nothing captured, `-1` = engine busy / write failed. |
 
@@ -128,13 +127,17 @@ Native image reference (`SharedRef<'image'>`). Pass it directly to `expo-image` 
 
 ### Enums
 
-`VoiceAlertType` and `VoiceMode` carry the same numeric values as the native SDK.
+`VoiceAlertType` carries the same numeric values as the native SDK.
 
 ## Voice
 
 Voice plays through the built-in native player by default. Subscribe to `onVoice`
 to receive clips instead and play them yourself; unsubscribing hands playback back
 to the built-in player.
+
+A chime-only voice mode (`setVoiceMode`) exists in the native SDK `main` branch but
+is not part of the published 1.0.1 binaries; it will be exposed here together with
+the next native release.
 
 ## Version mapping
 

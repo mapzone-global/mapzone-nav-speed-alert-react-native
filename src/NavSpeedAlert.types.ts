@@ -56,14 +56,6 @@ export enum VoiceAlertType {
   VEHICLE_RESTRICTED = 21,
 }
 
-/** How voice alerts are delivered. Values MUST match `VoiceMode.java` / `VoiceMode.swift`. */
-export enum VoiceMode {
-  /** Spoken sentences (default). */
-  FULL = 0,
-  /** Short chime only; signs are unaffected. */
-  DING = 1,
-}
-
 /** 0 = within limit, 1 = within 5 km/h of the limit, 2 = over the limit. */
 export type SpeedStatus = 0 | 1 | 2;
 
