@@ -1,0 +1,10 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@mapzone/nav-speed-alert": ["../src/index"],
+      "@mapzone/nav-speed-alert/*": ["../src/*"]
+    }
+  }
+}

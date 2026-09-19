@@ -1,0 +1,30 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.navspeedalert'
+version = '1.0.1'
+
+// Native Alert View SDK binary is consumed from JitPack. Hosts that lock
+// repositories with RepositoriesMode.FAIL_ON_PROJECT_REPOS must add jitpack
+// to their own settings.gradle (see README).
+repositories {
+  maven { url 'https://jitpack.io' }
+}
+
+android {
+  namespace "expo.modules.navspeedalert"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.1"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // Pinned to the native SDK release this wrapper was verified against.
+  implementation 'com.github.mapzone-global:mapzone-alert-view-android:1.0.1'
+}
