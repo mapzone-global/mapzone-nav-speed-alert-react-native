@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'expo.modules.navspeedalert'
-version = '1.0.1'
+version = '1.0.0'
 
 // Native Alert View SDK binary is consumed from JitPack. Hosts that lock
 // repositories with RepositoriesMode.FAIL_ON_PROJECT_REPOS must add jitpack
@@ -17,7 +17,7 @@ android {
   namespace "expo.modules.navspeedalert"
   defaultConfig {
     versionCode 1
-    versionName "1.0.1"
+    versionName "1.0.0"
   }
   lintOptions {
     abortOnError false

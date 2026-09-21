@@ -1,7 +1,7 @@
 {
   "name": "@mapzone/nav-speed-alert",
-  "version": "1.0.1",
-  "description": "React Native / Expo wrapper for the MapZone Alert View SDK (route-based speed & sign alerts)",
+  "version": "1.0.0",
+  "description": "Warning and alerting for speed, camera, toll and restriction violations on a route in React Native navigation apps.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "files": [
@@ -39,14 +39,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/mapzone-global/mapzone-nav-speed-alert"
+    "url": "https://github.com/mapzone-global/mapzone-nav-speed-alert-react-native"
   },
   "bugs": {
-    "url": "https://github.com/mapzone-global/mapzone-nav-speed-alert/issues"
+    "url": "https://github.com/mapzone-global/mapzone-nav-speed-alert-react-native/issues"
   },
-  "author": "Vietmap JSC <thanhdt@vietmap.vn>",
+  "author": "Map Zone <toannn@vietmap.vn>",
   "license": "MIT",
-  "homepage": "https://github.com/mapzone-global/mapzone-nav-speed-alert#readme",
+  "homepage": "https://github.com/mapzone-global/mapzone-nav-speed-alert-react-native#readme",
   "publishConfig": {
     "access": "public"
   },

@@ -12,14 +12,16 @@ const config: ExpoConfig = {
   icon: './assets/icon.png',
   userInterfaceStyle: 'light',
   ios: {
-    bundleIdentifier: 'expo.modules.navspeedalert.example',
+    // Must be the application id registered with the alert service; the SDK
+    // sends the running app's id as the auth bundleId.
+    bundleIdentifier: 'com.mapzone.Example',
     supportsTablet: false,
     infoPlist: {
       NSLocationWhenInUseUsageDescription: 'Used to feed GPS fixes to the speed alert engine.',
     },
   },
   android: {
-    package: 'expo.modules.navspeedalert.example',
+    package: 'com.mapzone.Example',
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/android-icon-foreground.png',

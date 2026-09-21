@@ -63,3 +63,6 @@ example/.env
 
 # npm pack output
 *.tgz
+
+# Internal planning docs
+plans/

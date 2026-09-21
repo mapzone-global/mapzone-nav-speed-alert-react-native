@@ -40,16 +40,26 @@ function useLatestTick<T>(
     return () => sub.remove();
   }, [subscribe]);
 
-  // Runs after each commit: everything delivered so far except the committed
-  // value is stale. On unmount `current` itself is released by the cleanup.
+  // Runs after each commit: everything delivered *before* the committed value
+  // is stale and is released exactly once here. Anything after it (an event
+  // that landed between the commit and this effect) is left alone — it is
+  // about to become `current` itself.
   useEffect(() => {
-    const stale = pending.current.filter((e) => e !== current);
-    pending.current = current ? [current] : [];
-    stale.forEach((e) => releaseAll(e, slots));
-    return () => {
-      if (current) releaseAll(current, slots);
-    };
+    if (!current) return;
+    const idx = pending.current.indexOf(current);
+    if (idx <= 0) return;
+    pending.current.splice(0, idx).forEach((e) => releaseAll(e, slots));
   }, [current, slots]);
+
+  // Unmount only (the subscription above is already removed by then): release
+  // the committed value plus anything that arrived after the last commit.
+  useEffect(
+    () => () => {
+      pending.current.forEach((e) => releaseAll(e, slots));
+      pending.current = [];
+    },
+    [slots]
+  );
 
   return current;
 }

@@ -134,7 +134,9 @@ export default function App() {
   };
 
   // Debug helpers for the extras contract: a reserved key must come back as a
-  // native error string, and `{}` must clear and return null. Call before Start.
+  // native error string, and `{}` must clear and return null. Disabled while
+  // running: these are sync calls that wait on the engine queue, which can be
+  // blocked by an in-flight segment fetch.
   const onDebugHeaders = () => {
     const err = NavSpeedAlert.setExtraHeaders({ 'content-type': 'x' });
     const cleared = NavSpeedAlert.setExtraHeaders({});
@@ -209,8 +211,8 @@ export default function App() {
 
         <Section title="Debug">
           <View style={styles.rowCenter}>
-            <Button title="Extra headers" onPress={onDebugHeaders} />
-            <Button title="Extra body fields" onPress={onDebugBodyFields} />
+            <Button title="Extra headers" onPress={onDebugHeaders} disabled={running} />
+            <Button title="Extra body fields" onPress={onDebugBodyFields} disabled={running} />
           </View>
         </Section>
 
