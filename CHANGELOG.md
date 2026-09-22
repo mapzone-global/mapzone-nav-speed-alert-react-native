@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.1 (2026-09-22)
+
+- Fix: publish compiled `build/` output. `1.0.0` shipped without it, so
+  `main`/`types` could not be resolved by Metro or TypeScript.
+
 ## 1.0.0 (2026-09-21)
 
 Initial release.

@@ -1,6 +1,6 @@
 {
   "name": "@mapzone/nav-speed-alert",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Warning and alerting for speed, camera, toll and restriction violations on a route in React Native navigation apps.",
   "main": "build/index.js",
   "types": "build/index.d.ts",
