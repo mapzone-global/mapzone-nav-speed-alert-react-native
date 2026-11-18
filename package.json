@@ -46,7 +46,7 @@
   },
   "author": "Map Zone <toannn@vietmap.vn>",
   "license": "MIT",
-  "homepage": "https://github.com/mapzone-global/mapzone-nav-speed-alert-react-native#readme",
+  "homepage": "https://github.com/mapzone-global/mapzone-nav-speed-alert-react-native",
   "publishConfig": {
     "access": "public"
   },
