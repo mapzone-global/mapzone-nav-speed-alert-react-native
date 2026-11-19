@@ -17,7 +17,7 @@ Pod::Spec.new do |s|
 
   s.dependency 'ExpoModulesCore'
   # Pinned to the native SDK release this wrapper was verified against.
-  s.dependency 'MapZoneAlertView', '= 1.0.1'
+  s.dependency 'MapZoneAlertView', '= 2.0.1'
 
   # Swift/Objective-C compatibility
   s.pod_target_xcconfig = {

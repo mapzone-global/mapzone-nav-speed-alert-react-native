@@ -1,5 +1,10 @@
 import * as NavSpeedAlert from '@mapzone/nav-speed-alert';
-import { VoiceAlertType, useNavSpeedAlertSigns } from '@mapzone/nav-speed-alert';
+import {
+  AlertViewError,
+  VoiceAlertType,
+  VoiceMode,
+  useNavSpeedAlertSigns,
+} from '@mapzone/nav-speed-alert';
 import Constants from 'expo-constants';
 import { Paths } from 'expo-file-system';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -19,7 +24,7 @@ import { SAMPLE_ROUTE_POLYLINE } from './src/fixtures/route';
 import { RouteSimulator } from './src/route-simulator';
 import { SignSlot } from './src/sign-slot';
 
-type Extra = NavSpeedAlert.ConfigureOptions & { segmentUrl: string };
+type Extra = Omit<NavSpeedAlert.ConfigureOptions, 'metadata'> & { segmentUrl: string };
 const extra = Constants.expoConfig?.extra as Extra;
 
 const MUTABLE_TYPES = Object.entries(VoiceAlertType).filter(
@@ -33,6 +38,10 @@ export default function App() {
   const [simSpeed, setSimSpeed] = useState(60);
   const [running, setRunning] = useState(false);
   const [voiceViaJs, setVoiceViaJs] = useState(false);
+  const [dingMode, setDingMode] = useState(false);
+  const [voiceSpeed, setVoiceSpeedState] = useState(1);
+  const [identity, setIdentity] = useState(extra.identity);
+  const [signedIn, setSignedIn] = useState(false);
   const [muted, setMuted] = useState<Set<VoiceAlertType>>(new Set());
   const [log, setLog] = useState<string[]>([]);
   const [logsAvailable, setLogsAvailable] = useState(false);
@@ -55,16 +64,43 @@ export default function App() {
     setRunning(false);
   }, []);
 
-  // configure once + always-on listeners
+  // Call on sign-in and on every launch with a user already signed in.
+  const signIn = useCallback(
+    async (user: string) => {
+      const { segmentUrl, ...opts } = extra;
+      try {
+        await NavSpeedAlert.configure({ ...opts, identity: user.trim() });
+        setSignedIn(true);
+        appendLog(`configure() ok for ${user.trim()}`);
+        if (segmentUrl) NavSpeedAlert.setSegmentUrl(segmentUrl);
+      } catch (e) {
+        appendLog(String(e));
+      }
+    },
+    [appendLog]
+  );
+
+  const signOut = useCallback(async () => {
+    stopSources();
+    const r = await NavSpeedAlert.logout();
+    appendLog(`logout() ok=${r.success} code=${r.errorCode} ${r.errorMessage}`);
+    if (r.success) setSignedIn(false);
+  }, [appendLog, stopSources]);
+
+  // Launch: sign the stored user back in. Always-on listeners.
   useEffect(() => {
-    const { segmentUrl, ...opts } = extra;
-    NavSpeedAlert.configure(opts);
-    if (segmentUrl) NavSpeedAlert.setSegmentUrl(segmentUrl);
+    if (extra.identity) signIn(extra.identity);
     NavSpeedAlert.canExportLogs().then(setLogsAvailable);
     const subs = [
-      NavSpeedAlert.addResultListener((e) =>
-        appendLog(`result ok=${e.success} code=${e.errorCode} ${e.errorMessage}`)
-      ),
+      NavSpeedAlert.addResultListener((e) => {
+        appendLog(`result ok=${e.success} code=${e.errorCode} ${e.errorMessage}`);
+        if (e.errorCode === AlertViewError.SESSION_MOVED) {
+          // The account signed in on another device: sign out here and do not
+          // configure() again until the user signs in again.
+          appendLog('account in use on another device → signing out');
+          signOut();
+        }
+      }),
       NavSpeedAlert.addRerouteListener((e) =>
         appendLog(`reroute at ${e.lat.toFixed(5)},${e.lng.toFixed(5)}`)
       ),
@@ -74,7 +110,8 @@ export default function App() {
       stopSources();
       NavSpeedAlert.reset();
     };
-  }, [appendLog, stopSources]);
+    // All deps are stable callbacks, so this runs once per mount.
+  }, [appendLog, stopSources, signIn, signOut]);
 
   // Subscribing silences the built-in player; unsubscribing restores it.
   useEffect(() => {
@@ -133,20 +170,36 @@ export default function App() {
     NavSpeedAlert.setMutedAlertTypes([...next]);
   };
 
-  // Debug helpers for the extras contract: a reserved key must come back as a
-  // native error string, and `{}` must clear and return null. Disabled while
-  // running: these are sync calls that wait on the engine queue, which can be
-  // blocked by an in-flight segment fetch.
+  const tryCall = (label: string, call: () => void) => {
+    try {
+      call();
+      appendLog(`${label} → ok`);
+    } catch (e) {
+      appendLog(`${label} → ${String(e)}`);
+    }
+  };
+
+  // Debug helpers for the extras contract: a reserved key must throw the
+  // native reason, and `{}` must clear without throwing.
   const onDebugHeaders = () => {
-    const err = NavSpeedAlert.setExtraHeaders({ 'content-type': 'x' });
-    const cleared = NavSpeedAlert.setExtraHeaders({});
-    appendLog(`setExtraHeaders reserved → ${err} | clear → ${cleared}`);
+    tryCall('setExtraHeaders reserved', () => NavSpeedAlert.setExtraHeaders({ 'content-type': 'x' }));
+    tryCall('setExtraHeaders clear', () => NavSpeedAlert.setExtraHeaders({}));
   };
 
   const onDebugBodyFields = () => {
-    const err = NavSpeedAlert.setExtraBodyFields({ pointsPolyline: 'x' });
-    const cleared = NavSpeedAlert.setExtraBodyFields({});
-    appendLog(`setExtraBodyFields reserved → ${err} | clear → ${cleared}`);
+    tryCall('setExtraBodyFields reserved', () => NavSpeedAlert.setExtraBodyFields({ identity: 'x' }));
+    tryCall('setExtraBodyFields clear', () => NavSpeedAlert.setExtraBodyFields({}));
+  };
+
+  const onDingMode = (on: boolean) => {
+    setDingMode(on);
+    NavSpeedAlert.setVoiceMode(on ? VoiceMode.DING : VoiceMode.FULL);
+  };
+
+  const changeVoiceSpeed = (delta: number) => {
+    const next = Math.min(2, Math.max(0.5, Math.round((voiceSpeed + delta) * 100) / 100));
+    setVoiceSpeedState(next);
+    NavSpeedAlert.setVoiceSpeed(next);
   };
 
   const onExportLogs = async () => {
@@ -159,6 +212,22 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.h1}>NavSpeedAlert example</Text>
+
+        <Section title="Account">
+          <TextInput
+            style={styles.input}
+            value={identity}
+            onChangeText={setIdentity}
+            editable={!signedIn}
+            autoCapitalize="none"
+            placeholder="Identity (phone number, driver code, ...)"
+          />
+          <View style={styles.rowCenter}>
+            <Button title="Sign in" onPress={() => signIn(identity)} disabled={signedIn || !identity.trim()} />
+            <Button title="Sign out" onPress={signOut} disabled={!signedIn} />
+            <Text>{signedIn ? 'signed in' : 'signed out'}</Text>
+          </View>
+        </Section>
 
         <Section title="Signs">
           <Text>speedStatus: {signs?.speedStatus ?? '-'}</Text>
@@ -195,7 +264,7 @@ export default function App() {
             </View>
           )}
           <View style={styles.rowCenter}>
-            <Button title={running ? 'Restart' : 'Start'} onPress={onStart} />
+            <Button title={running ? 'Restart' : 'Start'} onPress={onStart} disabled={!signedIn} />
             <Button title="Reset" onPress={onReset} />
             <Button title="Export logs" onPress={onExportLogs} disabled={!logsAvailable} />
           </View>
@@ -203,6 +272,12 @@ export default function App() {
 
         <Section title="Voice">
           <Toggle label="Receive voice in JS (silences built-in player)" value={voiceViaJs} onChange={setVoiceViaJs} />
+          <Toggle label="Ding mode (chimes instead of sentences)" value={dingMode} onChange={onDingMode} />
+          <View style={styles.rowCenter}>
+            <Text>Voice speed: {voiceSpeed.toFixed(2)}x </Text>
+            <Button title="-0.25" onPress={() => changeVoiceSpeed(-0.25)} />
+            <Button title="+0.25" onPress={() => changeVoiceSpeed(0.25)} />
+          </View>
           <Text style={styles.sub}>Mute:</Text>
           {MUTABLE_TYPES.map(([name, type]) => (
             <Toggle key={name} label={name} value={muted.has(type)} onChange={() => toggleMute(type)} />
@@ -211,8 +286,8 @@ export default function App() {
 
         <Section title="Debug">
           <View style={styles.rowCenter}>
-            <Button title="Extra headers" onPress={onDebugHeaders} disabled={running} />
-            <Button title="Extra body fields" onPress={onDebugBodyFields} disabled={running} />
+            <Button title="Extra headers" onPress={onDebugHeaders} />
+            <Button title="Extra body fields" onPress={onDebugBodyFields} />
           </View>
         </Section>
 

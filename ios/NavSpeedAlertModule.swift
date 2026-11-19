@@ -10,6 +10,11 @@ import UIKit
 /// semantics: restriction images are only rendered when a callback exists, and
 /// the built-in voice player stays active until a voice callback is set.
 ///
+/// Every function is synchronous on the JS thread: the native manager validates
+/// on the caller's thread and queues the work on its own serial queue, so
+/// `configure` / `logout` / `start` / `onLocation` reach native in the order JS
+/// issued them. Native callbacks arrive on the main thread.
+///
 /// Events go through `emit(event:payload:)` (JSI), not `sendEvent`: the latter
 /// still uses the legacy bridge emitter on iOS, which serializes the body and
 /// drops `SharedObject` values such as `AlertSignRef`. The two sign events use
@@ -21,7 +26,15 @@ public class NavSpeedAlertModule: Module {
   public func definition() -> ModuleDefinition {
     Name("NavSpeedAlert")
 
-    Events("onSigns", "onRestriction", "onVoice", "onResult", "onReroute")
+    Events(
+      "onSigns",
+      "onRestriction",
+      "onVoice",
+      "onResult",
+      "onReroute",
+      // Internal: settles the JS promise of `logout()`, matched by requestId.
+      "onLogoutResult"
+    )
 
     Class(AlertSignRef.self) {
       Function("toBase64") { (ref: AlertSignRef) in ref.toPngBase64() }
@@ -69,13 +82,30 @@ public class NavSpeedAlertModule: Module {
     }
     OnStopObserving("onVoice") { mgr.setVoiceCallback(nil) }
 
-    Function("configure") { (o: ConfigureRecord) in
-      mgr.configure(
-        baseUrl: o.baseUrl, apiKeyId: o.apiKeyId, apiKey: o.apiKey, vehicleId: o.vehicleId,
-        vehicleType: o.vehicleType, seats: o.seats, weights: o.weights, maxSnapMeters: o.maxSnapMeters
+    // Returns nil when applied, otherwise the native reason (nothing applied).
+    // JS has already checked `vehicleType` against `AlertVehicleType`.
+    Function("configure") { (o: ConfigureRecord) throws -> String? in
+      guard let vehicleType = AlertVehicleType(rawValue: o.vehicleType) else {
+        throw UnknownVehicleTypeException(o.vehicleType)
+      }
+      return mgr.configure(
+        baseUrl: o.baseUrl, apiKeyId: o.apiKeyId, apiKey: o.apiKey, identity: o.identity,
+        vehicleType: vehicleType, seats: o.seats, weights: o.weightsTons,
+        maxSnapMeters: o.maxSnapMeters, metadata: o.metadata
       )
     }
-    Function("setSegmentUrl") { (url: String) in mgr.setSegmentUrl(url) }
+    // Queued behind any configure issued before it; the server answer comes
+    // back on the main thread as `onLogoutResult` with the same requestId.
+    Function("logout") { (requestId: Int) in
+      mgr.logout { [weak self] success, errorCode, errorMessage in
+        let payload: [String: Any?] = [
+          "requestId": requestId, "success": success, "errorCode": errorCode,
+          "errorMessage": errorMessage,
+        ]
+        self?.emit(event: "onLogoutResult", payload: payload)
+      }
+    }
+    Function("setSegmentUrl") { (url: String) -> String? in mgr.setSegmentUrl(url) }
     Function("setExtraHeaders") { (headers: [String: String]) -> String? in mgr.setExtraHeaders(headers) }
     Function("setExtraBodyFields") { (fields: [String: String]) -> String? in mgr.setExtraBodyFields(fields) }
     Function("start") { (polyline: String) in mgr.start(polyline) }
@@ -86,6 +116,10 @@ public class NavSpeedAlertModule: Module {
     Function("setMutedAlertTypes") { (codes: [Int]) in
       mgr.setMutedAlertTypes(Set(codes.compactMap(VoiceAlertType.init(rawValue:))))
     }
+    Function("setVoiceMode") { (modeValue: Int) in
+      mgr.setVoiceMode(VoiceMode(rawValue: modeValue) ?? .full)
+    }
+    Function("setVoiceSpeed") { (speed: Float) in mgr.setVoiceSpeed(speed) }
     // Async: these wait for the engine queue (a segment fetch can be in flight)
     // and must not stall the JS thread.
     AsyncFunction("canExportLogs") { () -> Bool in mgr.canExportLogs() }
@@ -101,5 +135,12 @@ public class NavSpeedAlertModule: Module {
       mgr.setRerouteCallback(nil)
       mgr.reset()
     }
+  }
+}
+
+/// `configure` received a code that is not a native `AlertVehicleType` case.
+final class UnknownVehicleTypeException: GenericException<Int>, @unchecked Sendable {
+  override var reason: String {
+    "vehicleType must be an AlertVehicleType, got \(param)"
   }
 }

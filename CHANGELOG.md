@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.0.0 (unreleased)
+
+Moves to native MapZone Alert View SDK **2.0.1** — Android JitPack
+`com.github.mapzone-global:mapzone-alert-view-android:2.0.1`, iOS CocoaPods
+`MapZoneAlertView 2.0.1`. Breaking; see "Upgrading from 1.x" in the README.
+
+- `configure()` now signs a user in and returns `Promise<void>`: await it
+  before `start()`; it rejects with the native reason (and applies nothing)
+  when an input is refused.
+- `ConfigureOptions`: `identity` replaces `vehicleId`; `vehicleType` is the new
+  `AlertVehicleType` enum with server codes (`CAR` 1, `TAXI` 2, `BUS` 3,
+  `COACH` 4, `TRUCK` 5, `MOTORCYCLE` 7); `weightsTons` replaces `weights`
+  (same unit, tonnes); optional `metadata` object.
+- New `logout()`, resolving with `{ success, errorCode, errorMessage }`; it
+  reaches native in call order with `configure()` / `start()` / `onLocation()`.
+- `setSegmentUrl()`, `setExtraHeaders()` and `setExtraBodyFields()` throw with
+  the native reason instead of returning it; `setSegmentUrl()` accepts
+  `https://` only.
+- New `setVoiceMode(VoiceMode)` (`FULL` / `DING`) and `setVoiceSpeed(speed)`.
+- New `AlertViewError` constants; error codes reorganised by the native SDK
+  (`2006`, `2008`, `-6`, `-8`, …).
+- `onLocation()` rounds a fractional `fixTimeMillis` and throws on a
+  non-finite one.
+- Road-closed and vehicle-restricted restriction slots now carry a sign.
+- The no-parking / no-stopping (`stop`) sign shows at any speed; only its voice
+  still waits until the vehicle is slow.
+
 ## 1.0.1 (2026-09-22)
 
 - Fix: publish compiled `build/` output. `1.0.0` shipped without it, so

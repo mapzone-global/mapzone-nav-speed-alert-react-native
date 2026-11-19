@@ -2,9 +2,11 @@ package expo.modules.navspeedalert
 
 import android.graphics.Bitmap
 import android.util.Base64
+import com.vietmap.alert_view_sdk.AlertVehicleType
 import com.vietmap.alert_view_sdk.AlertViewManager
 import com.vietmap.alert_view_sdk.VoiceAlertType
 import com.vietmap.alert_view_sdk.VoiceCallback
+import com.vietmap.alert_view_sdk.VoiceMode
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -16,6 +18,11 @@ import expo.modules.kotlin.modules.ModuleDefinition
  * `onVoice` are wired only while JS has a listener, preserving native
  * semantics: restriction bitmaps are only rendered when a callback exists, and
  * the built-in voice player stays active until a voice callback is set.
+ *
+ * Every function is synchronous on the JS thread: the native manager validates
+ * on the caller's thread and queues the work on its own single-thread executor,
+ * so `configure` / `logout` / `start` / `onLocation` reach native in the order
+ * JS issued them. Native callbacks arrive on the main thread.
  */
 class NavSpeedAlertModule : Module() {
   private val mgr = AlertViewManager()
@@ -23,7 +30,15 @@ class NavSpeedAlertModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("NavSpeedAlert")
 
-    Events("onSigns", "onRestriction", "onVoice", "onResult", "onReroute")
+    Events(
+      "onSigns",
+      "onRestriction",
+      "onVoice",
+      "onResult",
+      "onReroute",
+      // Internal: settles the JS promise of `logout()`, matched by requestId.
+      "onLogoutResult",
+    )
 
     Class(AlertSignRef::class) {
       Function("toBase64") { ref: AlertSignRef -> ref.toPngBase64() }
@@ -97,13 +112,36 @@ class NavSpeedAlertModule : Module() {
     }
     OnStopObserving("onVoice") { mgr.setVoiceCallback(null) }
 
+    // Returns null when applied, otherwise the native reason (nothing applied).
+    // JS has already checked `vehicleType` against `AlertVehicleType`; an
+    // unknown code reaches native as null and is refused there.
     Function("configure") { o: ConfigureRecord ->
-      mgr.configure(
-        o.baseUrl, o.apiKeyId, o.apiKey, o.vehicleId,
-        o.vehicleType, o.seats, o.weights, o.maxSnapMeters,
+      val rejectionReason: String? = mgr.configure(
+        o.baseUrl, o.apiKeyId, o.apiKey, o.identity,
+        AlertVehicleType.fromValue(o.vehicleType), o.seats, o.weightsTons, o.maxSnapMeters,
+        o.metadata,
       )
+      rejectionReason
     }
-    Function("setSegmentUrl") { url: String -> mgr.setSegmentUrl(url) }
+    // Queued behind any configure issued before it; the server answer comes
+    // back on the main thread as `onLogoutResult` with the same requestId.
+    Function("logout") { requestId: Int ->
+      mgr.logout { success, errorCode, errorMessage ->
+        sendEvent(
+          "onLogoutResult",
+          mapOf(
+            "requestId" to requestId,
+            "success" to success,
+            "errorCode" to errorCode,
+            "errorMessage" to errorMessage,
+          ),
+        )
+      }
+    }
+    Function("setSegmentUrl") { url: String ->
+      val rejectionReason: String? = mgr.setSegmentUrl(url)
+      rejectionReason
+    }
     Function("setExtraHeaders") { headers: Map<String, String> -> mgr.setExtraHeaders(headers) }
     Function("setExtraBodyFields") { fields: Map<String, String> -> mgr.setExtraBodyFields(fields) }
     Function("start") { polyline: String -> mgr.start(polyline) }
@@ -114,6 +152,10 @@ class NavSpeedAlertModule : Module() {
     Function("setMutedAlertTypes") { codes: List<Int> ->
       mgr.setMutedAlertTypes(VoiceAlertType.values().filter { it.triggerValue in codes }.toSet())
     }
+    Function("setVoiceMode") { modeValue: Int ->
+      mgr.setVoiceMode(VoiceMode.values().firstOrNull { it.nativeValue == modeValue } ?: VoiceMode.FULL)
+    }
+    Function("setVoiceSpeed") { speed: Float -> mgr.setVoiceSpeed(speed) }
     // Async: these wait for the engine queue (a segment fetch can be in flight)
     // and must not stall the JS thread.
     AsyncFunction("canExportLogs") { mgr.canExportLogs() }
