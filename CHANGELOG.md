@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 (unreleased)
+## 2.0.0
 
 Moves to native MapZone Alert View SDK **2.0.1**.
 
