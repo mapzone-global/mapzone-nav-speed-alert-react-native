@@ -6,7 +6,7 @@ restriction alerts to an Expo / React Native navigation app with
 that produces a route polyline and a source of GPS fixes.
 
 > **Upgrading from 1.x?** 2.0.0 runs on native Alert View SDK 2.0.1 and is a
-> breaking release: the user now signs in. See [Upgrading from 1.x](#upgrading-from-1x).
+> breaking release. See [Upgrading from 1.x](#upgrading-from-1x).
 
 ## 1. Overview
 
@@ -46,22 +46,20 @@ you choose to receive the clips yourself.
 | Credentials | `baseUrl`, `apiKeyId`, `apiKey` issued by MapZone, plus the signed-in user's `identity` |
 | Native SDK | Android `com.github.mapzone-global:mapzone-alert-view-android:2.0.1`, iOS pod `MapZoneAlertView 2.0.1` (declared by the module) |
 
-**Your application id must be registered with the alert service.** The SDK
+**Your application id must be registered.** The SDK
 sends the running app's id (Android `applicationId`, iOS bundle identifier)
 when it authenticates. Build variants with an id suffix (`com.foo.debug`) are
 rejected unless they are registered too. A mismatch shows up as `2004` in
 `onResult` (§8). Register every platform id you test with.
 
-**Store privacy forms.** The SDK sends a device identifier it generates itself
-and the GPS positions along the route, linked to the signed-in user. Declare
-them in Google Play's *Data safety* form (Device or other IDs + Precise
+**Store privacy forms.** Declare them in Google Play's *Data safety* form (Device or other IDs + Precise
 location) and in the App Store privacy details (Device ID + Precise Location,
 app functionality, not used for tracking). Whatever you pass as `identity` and
 `metadata` is your own data: declare it in your forms and privacy policy too.
 
 The SDK requires location data but does **not** request the permission itself.
 Declare the location permission in your app config and request it at runtime
-as you would for any navigation app (the example in §5 uses `expo-location`).
+as you would for any navigation app.
 
 ## 3. Installation
 
@@ -117,7 +115,7 @@ try {
     baseUrl: 'https://driving.map.zone',   // gateway issued by MapZone; must start with https://
     apiKeyId: '<your-api-key-id>',
     apiKey: '<your-api-key>',              // a credential: keep it out of source control and logs
-    identity: '+84901234567',              // the signed-in user — see Identity
+    identity: '<your-identity>',              // the signed-in user — see Identity
     vehicleType: AlertVehicleType.CAR,     // see table below
     seats: 0,                              // passenger seats (coaches), integer; 0 = default for the type
     weightsTons: 0,                        // gross weight in TONNES (trucks); 0 = default for the type
@@ -642,9 +640,6 @@ const S = StyleSheet.create({
 ```
 
 ## Upgrading from 1.x
-
-2.0.0 moves to native Alert View SDK 2.0.1 (Android `2.0.1`, iOS `2.0.1`).
-Code written for 1.x no longer type-checks.
 
 | 1.x | 2.0.0 |
 |---|---|

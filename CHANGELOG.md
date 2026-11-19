@@ -2,9 +2,7 @@
 
 ## 2.0.0 (unreleased)
 
-Moves to native MapZone Alert View SDK **2.0.1** — Android JitPack
-`com.github.mapzone-global:mapzone-alert-view-android:2.0.1`, iOS CocoaPods
-`MapZoneAlertView 2.0.1`. Breaking; see "Upgrading from 1.x" in the README.
+Moves to native MapZone Alert View SDK **2.0.1**.
 
 - `configure()` now signs a user in and returns `Promise<void>`: await it
   before `start()`; it rejects with the native reason (and applies nothing)
