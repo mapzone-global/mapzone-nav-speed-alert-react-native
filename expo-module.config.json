@@ -1,0 +1,9 @@
+{
+  "platforms": ["android", "apple"],
+  "apple": {
+    "modules": ["NavSpeedAlertModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.navspeedalert.NavSpeedAlertModule"]
+  }
+}
